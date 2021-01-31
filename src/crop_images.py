@@ -27,7 +27,8 @@ def crop_source_images():
 
             img_thumb = cropped_img.resize((square_size, square_size), Image.LANCZOS)
             # img_thumbs[source_image] = img_thumb
-            name = 'C:/Users/Shane/PycharmProjects/Robert-Heaton-Projects/Photomosaics/Cropped-Images/cropped-' + str(image_no) + '.jpg'
+            name = 'C:/Users/Shane/PycharmProjects/Robert-Heaton-Projects/Photomosaics/Cropped-Images/cropped-' \
+                   + str(image_no) + '.jpg'
             img_thumb.save(name, 'JPEG')
             image_no += 1
 
