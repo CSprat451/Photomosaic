@@ -2,6 +2,6 @@
 *.jpeg
 *.png
 *.gif
-10pxCropped-Images/
-Cropped-Images/
-Images/
+images/
+src/__pycache__/
+.idea/

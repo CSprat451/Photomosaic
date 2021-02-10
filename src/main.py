@@ -1,9 +1,19 @@
-from PIL import Image, ImageFilter, ImageDraw
+from PIL import Image
+import crop_images
 import numpy as np
 import glob
+import uuid
+import os
+
+SOURCE_IMAGES_PATH = "../results/source-images/*.jpg"
+SQUARE_SIZE = 10
+INPUT_IMAGE = Image.open('spiderman.jpg')
 
 
 def split_image(pixels, corner, square_size):
+    """
+    Splits the original image into equal squares.
+    """
     opposite_corner = (corner[0] + square_size, corner[1] + square_size)
 
     square_rows = pixels[corner[0]:opposite_corner[0]]
@@ -40,19 +50,6 @@ def get_color_average(pixels):
     return r_total / n_pixels, g_total / n_pixels, b_total / n_pixels
 
 
-def crop_source_images():
-    source_images = glob.glob(source_images_link)
-    img_thumbs = {}
-    for source_image in source_images:
-        with open(source_image, 'rb') as file:
-            img = Image.open(file)
-
-            img_thumb = img.resize((square_size, square_size), Image.LANCZOS)
-
-            img_thumbs[source_image] = img_thumb
-    return img_thumbs
-
-
 def get_mean_rgb_source(img_thumbnails):
     rgbs = {}
     for path, img in img_thumbnails.items():
@@ -82,25 +79,45 @@ def pythagoras_color_difference(p1, p2):
     return tot ** 0.5
 
 
-source_images_link = "10pxCropped-Images/*.jpg"
-square_size = 10
-input_image = Image.open('fireworks.jpeg')
-target_image_width, target_image_height = input_image.size
-pixels = get_pixel_matrix(input_image)
-img_thumbnails = crop_source_images()
+def save_mosaic():
+    """
+    Creates the mosaic image using the color information and grid produced from the original image.
+    Output is a mosaic image using the resized and cropped source images from the "results/source-images" directory.
+    The directory "results/mosaic" will be created if it does not already exist.
+    """
+    mosaic_image = Image.new('RGB', (target_image_width, target_image_height), (255, 255, 255))
+    for x in range(0, target_image_width, SQUARE_SIZE):
+        for y in range(0, target_image_height, SQUARE_SIZE):
+            grid = split_image(pixels, (y, x), SQUARE_SIZE)
+            avg_color = get_color_average(grid)
+            best_match_thumbnail = pythagoras_nearest_rgb(avg_color, img_thumbs_mean_color)
+            img_thumb_value = img_thumbnails.get(best_match_thumbnail)
+            mosaic_image.paste(img_thumb_value, (x, y))
+
+    unique_filename = str(uuid.uuid4()) + ".jpg"
+    path = os.path.dirname(os.getcwd())
+    directory = os.path.join(path, "results", "mosaic")
+
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    mosaic_filepath = os.path.join(path, "results", "mosaic", unique_filename)
+    mosaic_image.save(mosaic_filepath)
+    mosaic_image.show()
+
+
+target_image_width, target_image_height = INPUT_IMAGE.size
+pixels = get_pixel_matrix(INPUT_IMAGE)
+
+img_thumbnails = {}
+if len(SOURCE_IMAGES_PATH) == 0:
+    img_thumbnails = crop_images.crop_source_images()
+else:
+    for filename in glob.glob(SOURCE_IMAGES_PATH):
+        image = Image.open(filename)
+        img_thumbnails[filename] = image
+
+
 img_thumbs_mean_color = get_mean_rgb_source(img_thumbnails)
-grid = split_image(pixels, (0, 0), square_size)
-
-
-mosaic_image = Image.new('RGB', (target_image_width, target_image_height), (255, 255, 255))
-
-for x in range(0, target_image_width, square_size):
-    for y in range(0, target_image_height, square_size):
-        grid = split_image(pixels, (y, x), square_size)
-        avg_color = get_color_average(grid)
-        best_match_thumbnail = pythagoras_nearest_rgb(avg_color, img_thumbs_mean_color)
-        img_thumb_value = img_thumbnails.get(best_match_thumbnail)
-        mosaic_image.paste(img_thumb_value, (x, y))
-
-mosaic_image.save("mosaic.jpg")
-mosaic_image.show()
+grid = split_image(pixels, (0, 0), SQUARE_SIZE)
+save_mosaic()
