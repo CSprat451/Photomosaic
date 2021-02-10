@@ -5,3 +5,4 @@
 images/
 src/__pycache__/
 .idea/
+env/
